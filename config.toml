@@ -1,0 +1,69 @@
+# Screan 默认配置文件
+# 部署到 /opt/screan/config.toml,可在不改代码的前提下调整
+
+[display]
+rotation       = 1            # 0=竖0° 1=横90° 2=竖180° 3=横270°
+spi_bus        = 0
+spi_device     = 1            # CS 接 CE1 → spidev0.1(本项目硬件接线)
+spi_speed_hz   = 24_000_000   # 24 MHz 实测稳定;杜邦线长可降到 16M/12M
+dc_pin         = 25
+rst_pin        = 24
+bl_pin         = 18
+gpiochip       = 0            # Pi4 用 0;Pi5 主 bank 是 4
+backlight      = 100          # 0..100。pwm_hz=0 时:≥1 视为全亮 GPIO HIGH
+pwm_hz         = 0            # 0=纯 GPIO HIGH/LOW(默认,无抖动)
+
+[render]
+max_rects      = 4            # 脏区合并上限
+max_fps        = 30           # 帧率上限(动画时实际跑 30 FPS)
+
+[sampling]
+cpu       = 0.2               # 0.2s = 5Hz,进度条动画素材源
+memory    = 1.0
+temp      = 1.0
+throttled = 5.0
+net       = 1.0
+disk      = 5.0
+hostname  = 60.0
+
+# 布局(480×320 横屏):
+#   ┌──────────────┬──────────────┐
+#   │ HOST         │   CLOCK      │
+#   │ 156×80       │   324×80     │
+#   ├──────────────┴──────────────┤
+#   │ CPU bar                     │   456×56
+#   ├─────────────────────────────┤
+#   │ MEM bar                     │   456×56
+#   ├──────────────┬──────────────┤
+#   │ TEMP   144   │ NET    144   │
+#   │              ├──────────────┤
+#   │              │ DISK   144   │
+#   └──────────────┴──────────────┘
+
+[[widgets]]
+type = "host"
+rect = [12, 8, 156, 80]
+
+[[widgets]]
+type = "clock"
+rect = [172, 8, 296, 80]
+
+[[widgets]]
+type = "cpu"
+rect = [12, 96, 456, 56]
+
+[[widgets]]
+type = "memory"
+rect = [12, 158, 456, 56]
+
+[[widgets]]
+type = "temperature"
+rect = [12, 220, 222, 92]
+
+[[widgets]]
+type = "network"
+rect = [246, 220, 222, 44]
+
+[[widgets]]
+type = "disk"
+rect = [246, 268, 222, 44]

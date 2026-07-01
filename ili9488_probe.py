@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+print("ILI9488 gray-screen quick checklist")
+print("1. Backlight works, but LCD stays gray: power/BL is OK, but LCD init/data is not accepted.")
+print("2. Confirm BCM numbering, not physical pin numbers:")
+print("   DC=GPIO25 physical pin 22")
+print("   RST=GPIO24 physical pin 18")
+print("   BL=GPIO18 physical pin 12")
+print("   MOSI=GPIO10 physical pin 19")
+print("   SCLK=GPIO11 physical pin 23")
+print("   CE1=GPIO7 physical pin 26, CE0=GPIO8 physical pin 24")
+print("3. If your screen CS wire is on physical pin 24, use spi_device=0.")
+print("4. If your screen CS wire is on physical pin 26, use spi_device=1.")
+print("5. Run the demo with the matching spi_device.")

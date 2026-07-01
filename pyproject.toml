@@ -1,0 +1,23 @@
+[project]
+name = "screan"
+version = "0.1.0"
+description = "Industrial system monitor sub-display for Raspberry Pi + ILI9488"
+requires-python = ">=3.11"
+dependencies = [
+    "skia-python ~= 144.0",
+    "psutil >= 5.9",
+    "Pillow >= 10.0",
+    "numpy >= 1.26",
+    "spidev >= 3.6",
+    "lgpio >= 0.2.2",
+]
+
+[project.scripts]
+screan = "screan.__main__:main"
+
+[build-system]
+requires = ["setuptools >= 64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["screan*"]

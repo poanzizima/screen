@@ -1,0 +1,45 @@
+[Unit]
+Description=Screan — ILI9488 industrial system monitor sub-display
+Documentation=file:///opt/screan/README.md
+After=multi-user.target network.target
+Wants=multi-user.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+WorkingDirectory=/opt/screan
+ExecStart=/opt/screan/venv/bin/python -m screan --config /opt/screan/config.toml
+Restart=always
+RestartSec=3
+WatchdogSec=10
+
+# 由 root 运行以便访问 SPI/GPIO 字符设备
+# (生产强化建议:用 screan 用户 + 把 /dev/spidev0.1 和 /dev/gpiochip0 ACL 给 spi/gpio 组)
+User=root
+
+# 工业资源护栏:RSS 上限 128M,超过会被 systemd 杀死并重启
+MemoryMax=128M
+# 关进程时给 2 秒优雅退出窗口(显示驱动 shutdown 实测 100ms,留充足余量)
+TimeoutStopSec=2
+# 进程优先级:稍微让步交互(nice 5)
+Nice=5
+
+# 日志走 journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=screan
+
+# Hardening(SPI/GPIO 需要的设备访问保留)
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/screan
+# /dev 设备节点访问:DeviceAllow 精确控制
+DevicePolicy=closed
+DeviceAllow=/dev/spidev0.1 rw
+DeviceAllow=/dev/gpiochip0 rw
+DeviceAllow=/dev/gpiochip4 rw
+
+[Install]
+WantedBy=multi-user.target
