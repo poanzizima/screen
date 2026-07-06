@@ -26,6 +26,12 @@ from ..widgets.base import Widget
 log = get_logger(__name__)
 
 
+def _intersects(a: Rect, b: Rect) -> bool:
+    """两个矩形是否有交集(用于判断脏区是否落在 photo widget 上)。"""
+    return (a.x < b.x + b.w and b.x < a.x + a.w
+            and a.y < b.y + b.h and b.y < a.y + a.h)
+
+
 class Compositor:
     def __init__(
         self,
@@ -101,10 +107,14 @@ class Compositor:
         merged = coalesce(dirty_rects, bounds=self._bounds,
                           max_rects=self.max_rects, align=2, gap=16)
 
+        # 收集需要抖动的 widget 全局 rect,判断脏区是否落在其上
+        photo_rects = [w.rect for w in self.widgets if w.wants_dither]
+
         total_bytes = 0
         for r in merged:
             sub = self.surface.snapshot_rect(r)
-            buf = rgba_to_rgb666(sub)
+            dither = any(_intersects(r, p) for p in photo_rects)
+            buf = rgba_to_rgb666(sub, dither=dither)
             self.display.update_region(r.x, r.y, r.w, r.h, buf)
             total_bytes += len(buf)
         return total_bytes
@@ -127,7 +137,9 @@ class Compositor:
         self.surface.flush()
 
         arr = self.surface.snapshot_array()
-        buf = rgba_to_rgb666(arr)
+        # 首帧:若布局中有任何 photo widget,整屏开抖动(1ms 代价换正常肤色)
+        any_photo = any(w.wants_dither for w in self.widgets)
+        buf = rgba_to_rgb666(arr, dither=any_photo)
         self.display.update_region(0, 0, self.surface.width, self.surface.height, buf)
         self._first_frame_done = True
         return len(buf)

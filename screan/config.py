@@ -20,6 +20,8 @@ from .util.rect import Rect
 class WidgetConfig:
     type: str
     rect: Rect
+    # image widget 之类需要额外参数(如 path)。dict 不可 hash,故不参与 eq/hash
+    options: dict = field(default_factory=dict, compare=False, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,10 +54,13 @@ def _coerce_render(d: dict) -> RenderConfig:
 
 def _coerce_sampling(d: dict) -> SamplerConfig:
     periods = dict(DEFAULT_PERIODS)
+    city = ""
     for k, v in d.items():
         if k in DEFAULT_PERIODS:
             periods[k] = float(v)
-    return SamplerConfig(periods=periods)
+        elif k == "weather_city":
+            city = str(v).strip()
+    return SamplerConfig(periods=periods, weather_city=city)
 
 
 def _coerce_widgets(items: list[dict], screen_w: int, screen_h: int
@@ -79,7 +84,10 @@ def _coerce_widgets(items: list[dict], screen_w: int, screen_h: int
             raise ValueError(
                 f"widget #{i}: rect {rect} out of screen {screen_w}x{screen_h}"
             )
-        out.append(WidgetConfig(type=type_name, rect=Rect(x, y, ww, hh)))
+        # 收集 type/rect 之外的所有字段作为 options(image 用 path 等)
+        options = {k: v for k, v in w.items() if k not in ("type", "rect")}
+        out.append(WidgetConfig(type=type_name, rect=Rect(x, y, ww, hh),
+                                options=options))
     if not out:
         raise ValueError("widgets list is empty")
     return tuple(out)

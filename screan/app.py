@@ -39,7 +39,8 @@ class Screan:
         # 屏幕尺寸由 display 决定(横/竖)
         self.surface = Surface(self.display.width, self.display.height)
         self.widgets = [
-            build_widget(w.type, w.rect, self.theme) for w in cfg.widgets
+            build_widget(w.type, w.rect, self.theme, **w.options)
+            for w in cfg.widgets
         ]
         self.compositor = Compositor(
             self.display, self.surface, self.theme, self.widgets,

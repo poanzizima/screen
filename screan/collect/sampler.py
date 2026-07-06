@@ -27,18 +27,23 @@ class _Schedule:
 # 默认采样周期(秒)。可在 SamplerConfig 覆盖。
 DEFAULT_PERIODS = {
     "cpu":       0.5,    # 0.5s,够流畅又不抢 CPU
+    "load":      2.0,    # loadavg 变化慢,2s 够
+    "procs":     3.0,    # /proc 扫描,低频
     "memory":    1.0,
     "temp":      1.0,
     "throttled": 5.0,    # subprocess,贵,低频
     "net":       1.0,
+    "netinfo":   5.0,    # SSID/信号/链路速率:iwgetid subprocess,低频
     "disk":      5.0,
     "hostname":  60.0,
+    "weather":   1800.0,   # 30 分钟一次,wttr.in 免费服务别打爆
 }
 
 
 @dataclass(slots=True)
 class SamplerConfig:
     periods: dict = field(default_factory=lambda: dict(DEFAULT_PERIODS))
+    weather_city: str = ""     # "" → 让 wttr.in 按 IP 猜(可能不准);填 "Shanghai" 之类明确定位
 
 
 class Sampler:
@@ -81,6 +86,10 @@ class Sampler:
                 try:
                     if s.name == "cpu":
                         updates.update(sources.read_cpu())
+                    elif s.name == "load":
+                        updates.update(sources.read_load())
+                    elif s.name == "procs":
+                        updates.update(sources.read_procs())
                     elif s.name == "memory":
                         updates.update(sources.read_memory())
                     elif s.name == "temp":
@@ -91,11 +100,20 @@ class Sampler:
                     elif s.name == "net":
                         fields, self._net_prev = sources.read_net(self._net_prev)
                         updates.update(fields)
+                    elif s.name == "netinfo":
+                        val = await loop.run_in_executor(None, sources.read_netinfo)
+                        updates.update(val)
                     elif s.name == "disk":
                         val = await loop.run_in_executor(None, sources.read_disk)
                         updates.update(val)
                     elif s.name == "hostname":
                         updates.update(sources.read_hostname())
+                    elif s.name == "weather":
+                        city = self.cfg.weather_city
+                        val = await loop.run_in_executor(
+                            None, sources.read_weather, city
+                        )
+                        updates.update(val)
                 except Exception as e:
                     log.warning("source %s failed: %s", s.name, e)
                 s.next_due = now + s.period

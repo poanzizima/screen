@@ -37,7 +37,7 @@ class Theme:
     value_size: float = 30.0
     value_size_md: float = 20.0      # 进度条 widget 的数值字号
     bar_radius: float = 8.0
-    bar_height: int = 14
+    bar_height: int = 10
     padding: int = 16
     row_gap: int = 12
 

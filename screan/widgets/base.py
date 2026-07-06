@@ -23,6 +23,11 @@ from ..util.rect import Rect
 
 
 class Widget(ABC):
+    # widget 是否要求脏区 RGB888 → RGB666 时开启抖动。
+    # UI/文字 widget (纯色为主)保持 False,避免噪点;photo/image widget 置 True,
+    # 缓解 ILI9488 只用高 6 位造成的色带/马赛克。
+    wants_dither: bool = False
+
     def __init__(self, rect: Rect, theme: Theme):
         self.rect = rect
         self.theme = theme

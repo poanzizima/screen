@@ -10,20 +10,24 @@ from ..collect.state import Metrics
 from ..util.anim import AnimatedValue
 from ..util.rect import Rect
 from .base import Widget
-from ._draw import draw_bar, draw_text, draw_text_right, fill_bg
+from ._draw import draw_bar, draw_text, draw_text_right, fill_bg, measure_text
 
 
 class CpuWidget(Widget):
     def __init__(self, rect, theme):
         super().__init__(rect, theme)
         self._displayed_int: int = -1
+        self._freq_mhz: int = -1
         self._anim = AnimatedValue(0.0, speed=10.0)
         self._last_bar_px: int = -1   # 上次绘制时进度条填充的像素宽度
 
     def update(self, m: Metrics) -> bool:
         v = int(round(m.cpu_percent))
-        text_changed = v != self._displayed_int
+        # 频率量化到 50 MHz,避免每 5 MHz 抖动都触发重绘
+        f = int(round(m.cpu_freq_mhz / 50.0)) * 50
+        text_changed = v != self._displayed_int or f != self._freq_mhz
         self._displayed_int = v
+        self._freq_mhz = f
         self._anim.set_target(float(v))
         if text_changed:
             self._dirty = True
@@ -51,13 +55,25 @@ class CpuWidget(Widget):
         v_text = max(0, self._displayed_int)
         v_anim = self._anim.current
 
-        label_font = t.font("regular", t.label_size_lg, bold=True)
-        value_font = t.font("mono", t.value_size_md, bold=True)
+        label_font = t.font("regular", t.label_size, bold=True)
+        value_font = t.font("mono", t.label_size_lg, bold=True)
+        small_font = t.font("mono", t.label_size - 2, bold=False)
 
-        # 文字顶端基线对齐:标签和数值都画在 label_size_lg 高度上
-        baseline = t.label_size_lg + 2
+        # 文字基线:靠上,留下方空间给进度条
+        baseline = t.label_size + 2
         draw_text(canvas, "CPU", 0, baseline, label_font, t.fg_secondary)
-        draw_text_right(canvas, f"{v_text}%", w, baseline, value_font, t.fg)
+
+        # 右侧:先画百分比,再在其左边画频率(灰,更小)
+        pct_str = f"{v_text}%"
+        pct_w, _ = measure_text(pct_str, value_font)
+        draw_text(canvas, pct_str, w - pct_w, baseline, value_font, t.fg)
+        if self._freq_mhz > 0:
+            # 频率用 GHz 更紧凑:1500 → "1.50G"
+            ghz = self._freq_mhz / 1000.0
+            freq_str = f"{ghz:.2f}G"
+            fw, _ = measure_text(freq_str, small_font)
+            draw_text(canvas, freq_str, w - pct_w - fw - 8,
+                      baseline, small_font, t.muted)
 
         if v_anim < 50:
             color = t.success
